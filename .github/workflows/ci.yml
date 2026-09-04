@@ -34,4 +34,8 @@ jobs:
           echo "status $code"
           grep -o "<title>[^<]*</title>" page.html || true
           grep -c "_next/static" page.html || true
-          echo "$code" | grep -q "^200 " && grep -q "_next/static" page.html
+          case "$code" in
+            "200 final=https://xmathx-x-xtech.vercel.app/"*) grep -q "_next/static" page.html && echo "live and public" ;;
+            *vercel.com/login*) echo "site is built but Vercel Authentication is on, visitors are sent to a Vercel login"; exit 1 ;;
+            *) echo "unexpected response"; exit 1 ;;
+          esac
