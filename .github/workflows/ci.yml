@@ -43,7 +43,7 @@ jobs:
       - name: Fetch the production site
         run: |
           ok=0
-          for url in https://xmathx-90.vercel.app/ https://xmathx-90-x-xtech.vercel.app/ https://xmathx-x-xtech.vercel.app/; do
+          for url in https://xmathx-90days.vercel.app/ https://xmathx-90.vercel.app/; do
             code=$(curl -s -L -D headers.txt -o page.html -w "%{http_code} final=%{url_effective}" "$url")
             echo "$url -> $code"
             case "$code" in
