@@ -183,3 +183,5 @@ button:disabled { cursor: default; }
   .eq.sm { font-size: 20px; }
   .steps { gap: 4px; font-size: 15px; }
 }
+
+.select { max-width: 58%; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); padding: 0 10px; font: inherit; font-size: 14px; }

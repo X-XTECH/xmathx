@@ -10,7 +10,7 @@ const IconReplay = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentCo
 /** Read-aloud controls for one card. Play or pause, replay, slower, auto-read. */
 export default function Speaker({ text }: { text: string }) {
   const [status, setStatus] = useState<SpeechStatus>('idle');
-  const [rate, setRate] = useState(1);
+  const [rate, setRate] = useState(0.94);
   const autoRead = useProgress((p) => p.settings.autoRead);
 
   useEffect(() => {
@@ -29,7 +29,7 @@ export default function Speaker({ text }: { text: string }) {
         <span>{playing ? 'Pause' : status === 'paused' ? 'Resume' : 'Listen'}</span>
       </button>
       <button type="button" className="sbtn" onClick={() => (status === 'idle' ? speech.speak(text) : speech.replay())} aria-label="Replay"><IconReplay /></button>
-      <button type="button" className={'sbtn' + (rate < 1 ? ' on' : '')} onClick={() => setRate(speech.slower())} aria-label="Slower">{rate === 1 ? 'Slower' : `${rate.toFixed(1)}×`}</button>
+      <button type="button" className={'sbtn' + (rate < 0.9 ? ' on' : '')} onClick={() => setRate(speech.slower())} aria-label="Slower">{rate >= 0.9 ? 'Slower' : rate >= 0.75 ? 'Slow' : 'Slowest'}</button>
       <span className="spacer" />
       <button type="button" className={'sbtn' + (autoRead ? ' on' : '')} onClick={() => store.setSettings({ autoRead: !autoRead })} aria-pressed={autoRead} aria-label="Auto-read next card">Auto</button>
     </div>

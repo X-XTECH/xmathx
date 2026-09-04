@@ -56,7 +56,7 @@ export default function App() {
   const dp = useProgress((p) => p.days[dayNo]);
   const loadToken = useRef(0);
 
-  useEffect(() => { setDayNo(store.get().currentDay); setReady(true); }, []);
+  useEffect(() => { const p = store.get(); speech.setVoice(p.settings.voice); setDayNo(p.currentDay); setReady(true); }, []);
 
   // Load a day when the day changes.
   useEffect(() => {
@@ -93,6 +93,7 @@ export default function App() {
 
   const next = useCallback(() => {
     if (!lesson || !step) return;
+    if (step.kind === 'intro') speech.prime();
     if (step.kind === 'quiz' && outcome !== 'right-first' && outcome !== 'right-retry') return;
     if (step.kind === 'done') { goto(Math.min(TOTAL_DAYS, dayNo + 1)); return; }
     let i = Math.min(lesson.steps.length - 1, idx + 1);

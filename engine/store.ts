@@ -21,13 +21,13 @@ export interface Progress {
   symbols: Record<string, Tally>;
   /** Mastery per skill: concept, equation, problem, build, incident, research, decision. */
   skills: Record<string, Tally>;
-  settings: { autoRead: boolean; rate: number };
+  settings: { autoRead: boolean; rate: number; voice: string };
 }
 
 const KEY = 'xmathx.progress.v1';
 
 function blank(): Progress {
-  return { v: 1, currentDay: 1, days: {}, items: {}, symbols: {}, skills: {}, settings: { autoRead: false, rate: 1 } };
+  return { v: 1, currentDay: 1, days: {}, items: {}, symbols: {}, skills: {}, settings: { autoRead: true, rate: 1, voice: '' } };
 }
 
 /** Plain object check that rejects arrays and prototype tricks from tampered storage. */
@@ -61,7 +61,7 @@ function load(): void {
           items: isRecord(parsed.items) ? (parsed.items as Progress['items']) : b.items,
           symbols: isRecord(parsed.symbols) ? (parsed.symbols as Progress['symbols']) : b.symbols,
           skills: isRecord(parsed.skills) ? (parsed.skills as Progress['skills']) : b.skills,
-          settings: { autoRead: parsed.settings?.autoRead === true, rate: typeof parsed.settings?.rate === 'number' ? parsed.settings.rate : 1 },
+          settings: { autoRead: parsed.settings?.autoRead !== false, rate: typeof parsed.settings?.rate === 'number' ? parsed.settings.rate : 1, voice: typeof parsed.settings?.voice === 'string' ? parsed.settings.voice : '' },
         };
       }
     }

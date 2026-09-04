@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PHASES, TOTAL_DAYS, titleFor } from '@/data/outline';
 import { store, useProgress } from '@/engine/store';
+import { speech } from '@/engine/speech';
 import Bar from './Bar';
 
 interface Props {
@@ -20,6 +21,9 @@ export default function DayPicker({ current, onPick, onClose }: Props) {
   const skills = useProgress((p) => p.skills);
   const symbols = useProgress((p) => p.symbols);
   const autoRead = useProgress((p) => p.settings.autoRead);
+  const voiceName = useProgress((p) => p.settings.voice);
+  const [voices, setVoices] = useState<{ name: string; lang: string }[]>([]);
+  useEffect(() => { const load = () => setVoices(speech.voices().map((v) => ({ name: v.name, lang: v.lang }))); load(); window.speechSynthesis?.addEventListener?.('voiceschanged', load); return () => window.speechSynthesis?.removeEventListener?.('voiceschanged', load); }, []);
 
   const doneCount = (from: number, to: number) => { let n = 0; for (let d = from; d <= to; d++) if (days[d]?.done) n++; return n; };
   const totalDone = doneCount(1, TOTAL_DAYS);
@@ -74,6 +78,7 @@ export default function DayPicker({ current, onPick, onClose }: Props) {
                 {Object.entries(symbols).slice(0, 24).map(([s, t]) => (<span className="sym" key={s}><b>{s}</b><span>{Math.round((t.right / Math.max(1, t.right + t.wrong)) * 100)}%</span></span>))}
               </div>
             </div>
+            <div className="row"><label htmlFor="voice">Voice</label><select id="voice" className="select" value={voiceName} onChange={(e) => { store.setSettings({ voice: e.target.value }); speech.setVoice(e.target.value); speech.speak('Hello. This is how I sound.'); }}><option value="">Automatic{voices.length ? ` (${speech.current()})` : ''}</option>{voices.map((v) => <option key={v.name} value={v.name}>{v.name} ({v.lang})</option>)}</select></div>
             <div className="row"><span>Auto-read each card</span><button type="button" className={'toggle' + (autoRead ? ' on' : '')} onClick={() => store.setSettings({ autoRead: !autoRead })} aria-pressed={autoRead} aria-label="Auto-read"><i /></button></div>
             <div className="row"><span>Current day {current}. {titleFor(current)}</span><button type="button" className="hintbtn" onClick={() => { store.restartDay(current); onPick(current); }}>Restart day</button></div>
             <div className="row"><span>Start again from day 1</span><button type="button" className="hintbtn danger" onClick={() => { if (window.confirm('Delete all progress?')) { store.reset(); onPick(1); } }}>Reset</button></div>
