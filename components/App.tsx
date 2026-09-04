@@ -43,7 +43,9 @@ async function buildLesson(n: number): Promise<Lesson> {
 }
 
 export default function App() {
-  const [dayNo, setDayNo] = useState<number>(() => store.get().currentDay);
+  // Day 1 on the server, then the saved day once on the client, so hydration matches.
+  const [dayNo, setDayNo] = useState<number>(1);
+  const [ready, setReady] = useState(false);
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [idx, setIdx] = useState(0);
   const [picker, setPicker] = useState(false);
@@ -53,8 +55,11 @@ export default function App() {
   const dp = useProgress((p) => p.days[dayNo]);
   const loadToken = useRef(0);
 
+  useEffect(() => { setDayNo(store.get().currentDay); setReady(true); }, []);
+
   // Load a day when the day changes.
   useEffect(() => {
+    if (!ready) return;
     const token = ++loadToken.current;
     setLesson(null);
     buildLesson(dayNo).then((l) => {
@@ -66,7 +71,7 @@ export default function App() {
       setResumeIdx(first > 0 ? first : 0);
       setOutcome('pending');
     });
-  }, [dayNo]);
+  }, [dayNo, ready]);
 
   const step = lesson?.steps[idx];
   const text = useMemo(() => (step ? spokenText(step) : ''), [step]);
