@@ -25,13 +25,15 @@ try {
   const browser = await chromium.launch({ executablePath: process.env.CHROME || '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
   for (const vp of viewports) {
     const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
-    const page = await ctx.newPage();
+    let page = await ctx.newPage();
     const errors = [];
     page.on('pageerror', (e) => errors.push(String(e)));
     page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+    // Storage is written by an init script so it lands before the app loads and before any flush on page hide.
+    const seed = { v: 1, currentDay: day, days: {}, items: {}, symbols: {}, skills: {}, settings: { autoRead: false, rate: 1 } };
+    await ctx.addInitScript((v) => { if (v) localStorage.setItem('xmathx.progress.v1', v); }, JSON.stringify(seed));
     await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'networkidle' });
-    await page.evaluate((d) => { localStorage.setItem('xmathx.progress.v1', JSON.stringify({ v: 1, currentDay: d, days: {}, items: {}, symbols: {}, skills: {}, settings: { autoRead: false, rate: 1 } })); }, day);
-    await page.reload({ waitUntil: 'networkidle' });
+    await ctx.addInitScript(() => {}, null);
     await page.waitForSelector('.card', { timeout: 15000 });
 
     const seen = new Set();
@@ -89,6 +91,38 @@ try {
     console.log(`${vp.name}: ${steps + 1} screens, ${quizzes} quizzes, stored core=${dayState?.core} done=${dayState?.done} items=${Object.keys(stored.items || {}).length} symbols=${Object.keys(stored.symbols || {}).length}`);
     if (!dayState?.done) { failures++; console.log(`${vp.name}: day ${day} not marked done`); }
     if (errors.length) { failures++; console.log(`${vp.name}: page errors:\n  ` + errors.slice(0, 5).join('\n  ')); }
+
+    // Recall. Make every answered item overdue, open the next day, and expect recall cards woven in.
+    if (day < 90 && vp === viewports[0]) {
+      const overdue = JSON.parse(JSON.stringify(stored));
+      const today = Math.floor(Date.now() / 86400000);
+      for (const k of Object.keys(overdue.items || {})) overdue.items[k].due = today - 1;
+      overdue.currentDay = day + 1;
+      const p2 = await ctx.newPage();
+      await page.close();
+      await ctx.addInitScript((v) => { localStorage.setItem('xmathx.progress.v1', v); }, JSON.stringify(overdue));
+      await p2.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'networkidle' });
+      page = p2;
+      await page.waitForSelector('.card', { timeout: 15000 });
+      let recalls = 0;
+      for (let i = 0; i < 40; i++) {
+        const chip = await page.evaluate(() => document.querySelector('.card .chip')?.textContent ?? '');
+        if (chip === 'Recall') {
+          recalls++;
+          const ok = await page.evaluate(() => { const b = document.querySelector('.card .body'); return b ? b.scrollHeight <= b.clientHeight + 1 : true; });
+          if (!ok) { failures++; console.log(`OVERFLOW recall card ${i} on day ${day + 1}`); await page.screenshot({ path: join(shots, `recall-overflow-${i}.png`) }); }
+          if (recalls === 1) await page.screenshot({ path: join(shots, `${vp.name}-recall.png`) });
+        }
+        const isQuiz = await page.evaluate(() => !!document.querySelector('.card .opts'));
+        if (isQuiz) { for (let k = 0; k < 3; k++) { await page.click(`.opt:nth-child(${k + 1})`); if (await page.evaluate(() => !!document.querySelector('.feedback.good'))) break; } }
+        const btn = await page.$('.foot .next:not([disabled])');
+        if (!btn) break;
+        await btn.click();
+        await page.waitForTimeout(30);
+      }
+      console.log(`${vp.name}: day ${day + 1} showed ${recalls} recall card(s) in the first 40 screens`);
+      if (recalls === 0) { failures++; console.log('no recall cards appeared'); }
+    }
     await ctx.close();
   }
   await browser.close();
