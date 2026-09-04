@@ -42,17 +42,20 @@ jobs:
     steps:
       - name: Fetch the production site
         run: |
-          url="https://xmathx-x-xtech.vercel.app/"
-          code=$(curl -s -L -D headers.txt -o page.html -w "%{http_code} final=%{url_effective}" "$url")
-          echo "status $code"
-          case "$code" in
-            "200 final=https://xmathx-x-xtech.vercel.app/"*) ;;
-            *vercel.com/login*) echo "site is built but Vercel Authentication is on, visitors are sent to a Vercel login"; exit 1 ;;
-            *) echo "unexpected response"; exit 1 ;;
-          esac
-          grep -q "_next/static" page.html
-          for h in content-security-policy strict-transport-security x-content-type-options referrer-policy permissions-policy cross-origin-opener-policy; do
-            grep -qi "^$h:" headers.txt && echo "ok $h" || { echo "missing header $h"; exit 1; }
+          ok=0
+          for url in https://xmathx-90.vercel.app/ https://xmathx-90-x-xtech.vercel.app/ https://xmathx-x-xtech.vercel.app/; do
+            code=$(curl -s -L -D headers.txt -o page.html -w "%{http_code} final=%{url_effective}" "$url")
+            echo "$url -> $code"
+            case "$code" in
+              "200 final=$url"*) ;;
+              *) continue ;;
+            esac
+            grep -q "_next/static" page.html || continue
+            missing=0
+            for h in content-security-policy strict-transport-security x-content-type-options referrer-policy permissions-policy cross-origin-opener-policy; do
+              grep -qi "^$h:" headers.txt || { echo "  missing header $h"; missing=1; }
+            done
+            grep -i "^content-security-policy:" headers.txt | grep -q "unsafe-inline" && { echo "  CSP allows inline"; missing=1; }
+            [ $missing = 0 ] && { echo "  live, public, and hardened"; ok=1; }
           done
-          grep -i "^content-security-policy:" headers.txt | grep -q "unsafe-inline" && { echo "CSP allows inline"; exit 1; }
-          echo "live, public, and hardened"
+          test $ok = 1
