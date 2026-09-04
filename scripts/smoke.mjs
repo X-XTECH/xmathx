@@ -71,6 +71,8 @@ try {
           await page.click(`.opt:nth-child(${i + 1})`);
           const ok = await page.evaluate(() => !!document.querySelector('.feedback.good'));
           if (ok) break;
+          const wrongOverflow = await page.evaluate(() => { const b = document.querySelector('.card .body'); return b ? b.scrollHeight > b.clientHeight + 1 : false; });
+          if (wrongOverflow) { failures++; console.log(`OVERFLOW after wrong answer ${label}`); await page.screenshot({ path: join(shots, `${vp.name}-overflow-wrong-${steps}.png`) }); }
         }
         const overflowAfter = await page.evaluate(() => { const b = document.querySelector('.card .body'); return b ? b.scrollHeight > b.clientHeight + 1 : false; });
         if (overflowAfter) { failures++; console.log(`OVERFLOW after answer ${label}`); await page.screenshot({ path: join(shots, `${vp.name}-overflow-answered-${steps}.png`) }); }

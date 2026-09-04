@@ -33,9 +33,13 @@ export default function QuizCard({ quiz, text, onOutcome }: Props) {
       <div className="chip-row"><span className={chipClass}>{quiz.tag}</span>{quiz.title && <span className="chip-note">{quiz.title}</span>}</div>
       <div className="body start">
         {!answered && quiz.body?.map((b, i) => <p className={quiz.body!.length === 1 && b.length < 40 ? 'eq sm' : 'mid'} key={i}>{b}</p>)}
-        <p className="q">{quiz.q}</p>
+        {!(answered && !correct) && <p className={'q' + (answered ? ' compact' : quiz.q.length > 110 ? ' long' : '')}>{quiz.q}</p>}
+        {answered && !correct && (
+          <div className="feedback bad" role="status"><b>Not quite.</b>{quiz.explain} Tap the right answer to carry on.</div>
+        )}
         <div className="opts" role="group" aria-label="Answers">
           {quiz.options.map((o, i) => {
+            if (correct && i !== quiz.answer) return null;
             let cls = 'opt';
             if (answered) {
               if (i === quiz.answer && (correct || picked === i)) cls += ' right';
@@ -52,10 +56,10 @@ export default function QuizCard({ quiz, text, onOutcome }: Props) {
           })}
         </div>
         {!answered && quiz.hint && (hint ? <p className="small">{quiz.hint}</p> : <button type="button" className="hintbtn" onClick={() => setHint(true)}>Show hint</button>)}
-        {answered && (
-          <div className={'feedback ' + (correct ? 'good' : 'bad')} role="status">
-            <b>{correct ? (wrongOnce ? 'Right this time.' : 'Correct.') : 'Not quite.'}</b>
-            {quiz.explain}{!correct && ' Tap the right answer to carry on.'}
+        {correct && (
+          <div className="feedback good" role="status">
+            <b>{wrongOnce ? 'Right this time.' : 'Correct.'}</b>
+            {quiz.explain}
           </div>
         )}
       </div>
