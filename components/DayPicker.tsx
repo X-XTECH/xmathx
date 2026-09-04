@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { PHASES, TOTAL_DAYS, titleFor } from '@/data/outline';
 import { store, useProgress } from '@/engine/store';
+import Bar from './Bar';
 
 interface Props {
   current: number;
@@ -64,7 +65,7 @@ export default function DayPicker({ current, onPick, onClose }: Props) {
             <div className="mastery">
               {SKILLS.map(([k, label]) => {
                 const t = skills[k]; const n = (t?.right ?? 0) + (t?.wrong ?? 0); const p = n ? (t!.right / n) : 0;
-                return (<div className="mrow" key={k}><span>{label}</span><span className="mb"><i style={{ ['--p' as string]: p }} /></span><span className="mv">{n ? `${Math.round(p * 100)}%` : '–'}</span></div>);
+                return (<div className="mrow" key={k}><span>{label}</span><Bar value={p} className="mb" /><span className="mv">{n ? `${Math.round(p * 100)}%` : '–'}</span></div>);
               })}
             </div>
             <div className="mastery">

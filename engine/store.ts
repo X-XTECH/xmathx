@@ -30,6 +30,16 @@ function blank(): Progress {
   return { v: 1, currentDay: 1, days: {}, items: {}, symbols: {}, skills: {}, settings: { autoRead: false, rate: 1 } };
 }
 
+/** Plain object check that rejects arrays and prototype tricks from tampered storage. */
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v) && Object.getPrototypeOf(v) === Object.prototype;
+}
+
+function clampDay(v: unknown): number {
+  const n = typeof v === 'number' && Number.isFinite(v) ? Math.round(v) : 1;
+  return Math.max(1, Math.min(90, n));
+}
+
 let state: Progress = blank();
 let loaded = false;
 const listeners = new Set<() => void>();
@@ -41,8 +51,19 @@ function load(): void {
   try {
     const raw = window.localStorage.getItem(KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as Progress;
-      if (parsed && parsed.v === 1) state = { ...blank(), ...parsed, settings: { ...blank().settings, ...parsed.settings } };
+      const parsed = JSON.parse(raw) as Partial<Progress>;
+      if (isRecord(parsed) && parsed.v === 1) {
+        const b = blank();
+        state = {
+          v: 1,
+          currentDay: clampDay(parsed.currentDay),
+          days: isRecord(parsed.days) ? (parsed.days as Progress['days']) : b.days,
+          items: isRecord(parsed.items) ? (parsed.items as Progress['items']) : b.items,
+          symbols: isRecord(parsed.symbols) ? (parsed.symbols as Progress['symbols']) : b.symbols,
+          skills: isRecord(parsed.skills) ? (parsed.skills as Progress['skills']) : b.skills,
+          settings: { autoRead: parsed.settings?.autoRead === true, rate: typeof parsed.settings?.rate === 'number' ? parsed.settings.rate : 1 },
+        };
+      }
     }
   } catch {
     state = blank();

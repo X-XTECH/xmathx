@@ -4,38 +4,55 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
-    name: Validate, typecheck, build
+    name: Audit, validate, typecheck, build, headers
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --no-audit --no-fund
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm audit --audit-level=moderate
       - run: npm run validate
       - run: node scripts/lint-content.mjs
       - run: npm run typecheck
       - run: npm run build
+      - name: Content Security Policy has no inline allowances
+        run: |
+          csp=$(node -e "const c=require('./.vercel/output/config.json');console.log(c.routes.find(r=>r.headers&&r.headers['content-security-policy']).headers['content-security-policy'])")
+          echo "$csp"
+          case "$csp" in *unsafe-inline*|*unsafe-eval*) echo "CSP contains an unsafe allowance"; exit 1;; esac
+          echo "$csp" | grep -q "sha256-"
 
   live:
-    name: Live site responds
+    name: Live site responds with security headers
     runs-on: ubuntu-latest
     steps:
       - name: Fetch the production site
         run: |
           url="https://xmathx-x-xtech.vercel.app/"
-          echo "--- headers without following redirects"
-          curl -s -D - -o /dev/null "$url" | head -20
-          echo "--- following redirects"
-          code=$(curl -s -L -o page.html -w "%{http_code} final=%{url_effective}" "$url")
+          code=$(curl -s -L -D headers.txt -o page.html -w "%{http_code} final=%{url_effective}" "$url")
           echo "status $code"
-          grep -o "<title>[^<]*</title>" page.html || true
-          grep -c "_next/static" page.html || true
           case "$code" in
-            "200 final=https://xmathx-x-xtech.vercel.app/"*) grep -q "_next/static" page.html && echo "live and public" ;;
+            "200 final=https://xmathx-x-xtech.vercel.app/"*) ;;
             *vercel.com/login*) echo "site is built but Vercel Authentication is on, visitors are sent to a Vercel login"; exit 1 ;;
             *) echo "unexpected response"; exit 1 ;;
           esac
+          grep -q "_next/static" page.html
+          for h in content-security-policy strict-transport-security x-content-type-options referrer-policy permissions-policy cross-origin-opener-policy; do
+            grep -qi "^$h:" headers.txt && echo "ok $h" || { echo "missing header $h"; exit 1; }
+          done
+          grep -i "^content-security-policy:" headers.txt | grep -q "unsafe-inline" && { echo "CSP allows inline"; exit 1; }
+          echo "live, public, and hardened"

@@ -11,6 +11,7 @@ import { BuildCard, ConceptCard, DoneCard, IntroCard, ReadCard, ResearchCard, Sy
 import QuizCard, { type QuizOutcome } from './QuizCard';
 import DayPicker from './DayPicker';
 import { useSwipe } from './useSwipe';
+import Bar from './Bar';
 
 interface Lesson {
   day: Day;
@@ -145,7 +146,7 @@ export default function App() {
           <span>Day {dayNo}</span><span className="t">{titleFor(dayNo)}</span><span className="v">▾</span>
         </button>
         <span className="count" aria-live="polite">{lesson && coreIdx !== null ? `${coreIdx + 1} / ${lesson.coreLength}` : ''}</span>
-        <div className="bar" aria-hidden="true"><i style={{ ['--p' as string]: progress }} /></div>
+        <Bar value={progress} />
       </header>
 
       <section className="stage" {...swipe}>

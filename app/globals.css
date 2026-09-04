@@ -55,7 +55,7 @@ button:disabled { cursor: default; }
 .daychip .t { color: var(--muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .daychip .v { color: var(--muted); font-size: 12px; }
 .count { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
-.bar { grid-column: 1 / -1; height: 4px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.bar { grid-column: 1 / -1; margin: 0; padding: 0; height: 4px; border-radius: 999px; background: var(--line); overflow: hidden; }
 .bar > i { display: block; height: 100%; background: var(--accent); transform-origin: left; transform: scaleX(var(--p, 0)); transition: transform 160ms ease-out; will-change: transform; }
 
 /* Stage and card */

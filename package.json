@@ -5,14 +5,14 @@
   "description": "90 days of AI, ML and cyber. A learning engine, not a dashboard.",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && node scripts/output.mjs",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "validate": "node scripts/validate.mjs",
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
-    "next": "^15.5.0",
+    "next": "^16.3.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
