@@ -27,8 +27,11 @@ jobs:
       - name: Fetch the production site
         run: |
           url="https://xmathx-x-xtech.vercel.app/"
-          code=$(curl -s -o page.html -w "%{http_code}" "$url")
+          echo "--- headers without following redirects"
+          curl -s -D - -o /dev/null "$url" | head -20
+          echo "--- following redirects"
+          code=$(curl -s -L -o page.html -w "%{http_code} final=%{url_effective}" "$url")
           echo "status $code"
           grep -o "<title>[^<]*</title>" page.html || true
           grep -c "_next/static" page.html || true
-          test "$code" = "200"
+          echo "$code" | grep -q "^200 " && grep -q "_next/static" page.html
